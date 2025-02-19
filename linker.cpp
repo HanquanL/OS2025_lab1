@@ -7,14 +7,15 @@ using namespace std;
 
 /*------  global variable  ------*/
 int lineNumber = 0, currentOffset = 0;
-string fileName,token,line;
+string fileName,line;
 
 /*------  function declaration  ------*/
 void __parseerror(int errcode);
+string getToken(string fileName);
 int readInt(string token);
 string readSymbol(string token);
 string readMARIE(string token);
-int getToken(string fileName);
+void pass1(string fileName);
 
 /*------  main function  ------*/
 int main(int argc, char* argv[])
@@ -22,15 +23,38 @@ int main(int argc, char* argv[])
     if (argc != 2){
         cout << "Invalid file name!" << endl;
         exit(0);
-   }else{
+    }else{
         fileName = argv[1];
-   }
-    getToken(fileName);
+    }
+   //getToken(fileName);    // only uncomment this line for testing purpose
+    cout <<"Symbol Table" << endl;
+    cout <<"Memory Map" << endl;
+    //pass1(fileName);
    
     return 0;
 }
 
 /*------  function definition  ------*/
+void pass1(string fileName){
+    while(true){
+        string currentToken = getToken(fileName);
+        int defcount;
+        if(currentToken == ""){
+            break;
+        }else if(defcount >16){
+            __parseerror(3);
+        }else{
+            defcount = readInt(currentToken);
+        }
+        while(defcount > 0){
+            string symbol = readSymbol(currentToken);
+            int relAdd = readInt(currentToken);
+            
+            defcount--;
+        }
+    }
+}
+
 string readMARIE(string token){
     string MARIE = token;
     if(token.size() != 1){
@@ -81,11 +105,12 @@ void __parseerror(int errcode){
     printf("Parse Error line %d offset %d: %s\n", lineNumber, currentOffset, errstr[errcode].c_str());
     exit(0);
 }
-int getToken(string fileName){
+string getToken(string fileName){
+    string token;
     ifstream inputFile(fileName);
     if(!inputFile){
             cout << "Failed to open file: " << fileName << endl;
-            return 1;
+            return "";
     }
     
     while(getline(inputFile , line)){
@@ -96,11 +121,14 @@ int getToken(string fileName){
                 size_t found = line.find(token, tokenStart);
                 currentOffset = found;
                 if(found != string::npos){
-                    printf("token:<%s> position=%d:%zd\n", token.c_str(), lineNumber, found +1);
+                    //printf("token:<%s> position=%d:%zd\n", token.c_str(), lineNumber, found +1);
+                    cout << token << endl;
                     tokenStart = found + token.length();
+                    return token;
                 }
-            }  
+            }
     }
     printf("EOF position = %d:%d\n", lineNumber, currentOffset +1); 
-    return 0;
+    inputFile.close();
+    return "";
 }
