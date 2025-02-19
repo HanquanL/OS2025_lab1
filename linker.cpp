@@ -7,14 +7,18 @@ using namespace std;
 
 /*------  global variable  ------*/
 int lineNumber = 0, currentOffset = 0;
-string fileName,token,line;
+string fileName,line,token;
+ifstream inputFile;
+istringstream lineStream;
+size_t tokenStart = 0;
 
 /*------  function declaration  ------*/
 void __parseerror(int errcode);
+string getToken();
 int readInt(string token);
 string readSymbol(string token);
 string readMARIE(string token);
-int getToken(string fileName);
+void pass1(string fileName);
 
 /*------  main function  ------*/
 int main(int argc, char* argv[])
@@ -22,15 +26,46 @@ int main(int argc, char* argv[])
     if (argc != 2){
         cout << "Invalid file name!" << endl;
         exit(0);
-   }else{
+    }else{
         fileName = argv[1];
-   }
-    getToken(fileName);
+    }
+   //getToken(fileName);    // only uncomment this line for testing purpose
+    cout <<"Symbol Table" << endl;
+    cout <<"Memory Map" << endl;
+    pass1(fileName);
    
     return 0;
 }
 
 /*------  function definition  ------*/
+void pass1(string fileName){
+    int modelCount;
+    inputFile.open(fileName);
+    if(!inputFile.is_open()){
+        cout << "File not found!" << fileName << endl;
+        exit(0);
+    }
+    if(getline(inputFile, line)){
+        lineStream.clear();
+        lineStream.str(line);
+    }
+    while(true){
+        int defcount = readInt(getToken());
+        if(defcount < 0){
+            exit(2);
+        }else if(defcount > 16){
+            __parseerror(4);
+        }
+        for(int i = 0; i < defcount; i++){
+            string symbol = readSymbol(getToken());
+            int val = readInt(getToken());
+            createSymbol(symbol, val);
+        }
+
+    }
+   
+}
+
 string readMARIE(string token){
     string MARIE = token;
     if(token.size() != 1){
@@ -78,29 +113,39 @@ void __parseerror(int errcode){
         "TO_MANY_USE_IN_MODULE", // > 16
         "TO_MANY_INSTR", // total num_instr exceeds memory size (512)
     };
-    printf("Parse Error line %d offset %d: %s\n", lineNumber, currentOffset, errstr[errcode].c_str());
+    printf("Parse Error line %d offset %d: %s\n", lineNumber+1, currentOffset+1, errstr[errcode].c_str());
     exit(0);
 }
-int getToken(string fileName){
-    ifstream inputFile(fileName);
-    if(!inputFile){
-            cout << "Failed to open file: " << fileName << endl;
-            return 1;
+
+string getToken(){
+    
+    if(lineStream >> token) {
+        size_t pos = line.find(token, tokenStart);
+        if(pos != string::npos){
+            currentOffset = pos;
+            tokenStart = pos + token.length();
+        }
+        printf("token=<%s> position=%d:%d\n", token.c_str(), lineNumber, currentOffset);
+        return token;
+    } 
+    // If current line is exhausted, proceed to the next line.
+    while(getline(inputFile, line)){
+        lineNumber++;
+        tokenStart = 0;  // Reset offset tracker for the new line.
+        lineStream.clear();
+        lineStream.str(line);
+        if(lineStream >> token){
+            size_t pos = line.find(token, tokenStart);
+            if(pos != string::npos){
+                currentOffset = pos;
+                tokenStart = pos + token.length();
+            }
+            printf("token=<%s> position=%d:%d\n", token.c_str(), lineNumber, currentOffset);
+            return token;
+        }
     }
     
-    while(getline(inputFile , line)){
-            lineNumber++;
-            istringstream lineToken(line);
-            size_t tokenStart = 0;
-            while(lineToken >> token){
-                size_t found = line.find(token, tokenStart);
-                currentOffset = found;
-                if(found != string::npos){
-                    printf("token:<%s> position=%d:%zd\n", token.c_str(), lineNumber, found +1);
-                    tokenStart = found + token.length();
-                }
-            }  
-    }
-    printf("EOF position = %d:%d\n", lineNumber, currentOffset +1); 
-    return 0;
+    printf("EOF position=%d:%d\n", lineNumber, currentOffset);
+    inputFile.close();
+    return "";
 }
