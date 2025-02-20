@@ -11,6 +11,7 @@ using namespace std;
 /*------  global variable  ------*/
 int lineNumber = 0, currentOffset = 0;
 int modelCount = 0, modelBase_address = 0;
+int totalInstructions = 0;
 string fileName,line,token;
 ifstream inputFile;
 istringstream lineStream;
@@ -28,6 +29,7 @@ void passOne(string fileName);
 void passTwo(string fileName);
 void createSymbol(string symbol, int val);
 void insertMemoryMap(string index, int value);
+int findValueFromSymbolTable(string symbol);
 
 /*------ Error INFO ------*/
 void __parseerror(int errcode);
@@ -49,14 +51,15 @@ int main(int argc, char* argv[])
     for(auto i : symbolTable){
         cout << i.first << "=" << i.second << endl;
     }
-    cout <<"Module Base Table" << endl;
-    for(auto i : moduleBaseTable){
-        cout <<"Module" << i.first << " Base Adress:" << i.second << endl;
-    }
     cout << endl;
+    // cout <<"Module Base Table" << endl;
+    // for(auto i : moduleBaseTable){
+    //     cout <<"Module" << i.first << " Base Adress:" << i.second << endl;
+    // }
+    // cout << endl;
     cout <<"Memory Map" << endl;
     for(auto i : memoryMap){
-        cout << i.first << ":" << i.second << endl;
+        cout << i.first << ": " << i.second << endl;
     }
    
     return 0;
@@ -65,6 +68,7 @@ int main(int argc, char* argv[])
 /*------  function definition  ------*/
 void passTwo(string fileName){
     int modelCount = 0, modelBase_address = 0, totalInstructions = 0;
+    vector<string> useList;
     inputFile.open(fileName);
     if(!inputFile.is_open()){
         cout << "File not found!" << fileName << endl;
@@ -76,11 +80,6 @@ void passTwo(string fileName){
             break;
         }
         int defcount = readInt(startToken);
-        if(defcount < 0){
-                exit(2);
-        }else if(defcount > 16){
-                __parseerror(4);
-        }
         for(int i = 0; i < defcount; i++){
                 string symbol = readSymbol(getToken());
                 int val = readInt(getToken());
@@ -88,6 +87,7 @@ void passTwo(string fileName){
         int usecount = readInt(getToken());
         for(int i = 0; i < usecount; i++){
             string symbol = readSymbol(getToken());
+            useList.push_back(symbol);
         }
         int instrcount = readInt(getToken());
         for(int i = 0; i < instrcount; i++){
@@ -100,6 +100,14 @@ void passTwo(string fileName){
             if(MARIE == "R"){
                 operand = operand + moduleBaseTable[modelCount];
                 insertMemoryMap(currentInstrcountIndex, operand);
+            }else if(MARIE == "E"){
+                int useIndex = operand % 1000;
+                int useBaseAddress = operand - useIndex;
+                string referenceSymbol = useList[useIndex];
+                int referenceSymbolValue = findValueFromSymbolTable(referenceSymbol);
+                operand = useBaseAddress + referenceSymbolValue;
+                insertMemoryMap(currentInstrcountIndex, operand);
+                useList = {};
             }else{
                 insertMemoryMap(currentInstrcountIndex, operand);
             }
@@ -140,6 +148,10 @@ void passOne(string fileName){
         }
         int instrcount = readInt(getToken());
         for(int i = 0; i < instrcount; i++){
+            totalInstructions += instrcount;
+            if(totalInstructions > 512){
+                __parseerror(6);
+            }
             string MARIE = readMARIE(getToken());
             int operand = readInt(getToken());
         }
@@ -156,8 +168,6 @@ void insertMemoryMap(string index, int value){
 }
 
 void createSymbol(string symbol, int val){
-    // symbolTable.push_back(symbol);
-    // symbolTable.push_back(to_string(val));
     if(symbolTable.find(symbol) == symbolTable.end()){
         symbolTable[symbol] = val;
     }
@@ -210,7 +220,7 @@ void __parseerror(int errcode){
         "TO_MANY_USE_IN_MODULE", // > 16
         "TO_MANY_INSTR", // total num_instr exceeds memory size (512)
     };
-    printf("Parse Error: token<%s> at line %d offset %d: %s\n", token.c_str(),lineNumber, currentOffset+1, errstr[errcode].c_str());
+    printf("Parse Error line %d offset %d: %s\n", lineNumber, currentOffset+1, errstr[errcode].c_str());
     exit(0);
 }
 
@@ -278,4 +288,12 @@ string getToken(){
     }
     //printf("EOF position=%d:%d\n", lineNumber, currentOffset+1);
     return "";
+}
+
+int findValueFromSymbolTable(string symbol){
+    auto it = symbolTable.find(symbol);
+    if(it != symbolTable.end()){
+        return it->second;
+    }
+    return 0;
 }
