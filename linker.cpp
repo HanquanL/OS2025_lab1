@@ -10,6 +10,7 @@ using namespace std;
 
 /*------  global variable  ------*/
 int lineNumber = 0, currentOffset = 0;
+int modelCount = 0, modelBase_address = 0;
 string fileName,line,token;
 ifstream inputFile;
 istringstream lineStream;
@@ -19,7 +20,6 @@ map<int, int> moduleBaseTable;
 map<string, int> memoryMap;
 
 /*------  function declaration  ------*/
-void __parseerror(int errcode);
 string getToken();
 int readInt(string token);
 string readSymbol(string token);
@@ -28,6 +28,11 @@ void passOne(string fileName);
 void passTwo(string fileName);
 void createSymbol(string symbol, int val);
 void insertMemoryMap(string index, int value);
+
+/*------ Error INFO ------*/
+void __parseerror(int errcode);
+void __eolerror(int errcode);
+void __seplerror(int errcode);
 
 /*------  main function  ------*/
 int main(int argc, char* argv[])
@@ -59,7 +64,7 @@ int main(int argc, char* argv[])
 
 /*------  function definition  ------*/
 void passTwo(string fileName){
-    int modelCount = 0, totalInstructions = 0;
+    int modelCount = 0, modelBase_address = 0, totalInstructions = 0;
     inputFile.open(fileName);
     if(!inputFile.is_open()){
         cout << "File not found!" << fileName << endl;
@@ -92,7 +97,13 @@ void passTwo(string fileName){
             instrcountIndex >> currentInstrcountIndex;
             string MARIE = readMARIE(getToken());
             int operand = readInt(getToken());
-            insertMemoryMap(currentInstrcountIndex, operand);
+            if(MARIE == "R"){
+                operand = operand + moduleBaseTable[modelCount];
+                insertMemoryMap(currentInstrcountIndex, operand);
+            }else{
+                insertMemoryMap(currentInstrcountIndex, operand);
+            }
+            //insertMemoryMap(currentInstrcountIndex, operand);
             totalInstructions++;
         }
         modelCount++;
@@ -101,7 +112,6 @@ void passTwo(string fileName){
 }
 
 void passOne(string fileName){
-    int modelCount = 0, modelBase_address = 0;
     inputFile.open(fileName);
     if(!inputFile.is_open()){
         cout << "File not found!" << fileName << endl;
@@ -202,6 +212,35 @@ void __parseerror(int errcode){
     };
     printf("Parse Error: token<%s> at line %d offset %d: %s\n", token.c_str(),lineNumber, currentOffset+1, errstr[errcode].c_str());
     exit(0);
+}
+
+void __eolerror(int errcode){
+    string errstr[] = {
+        "Error: This variable is multiple times defined; first value used",
+        "Error: External operand exceeds length of uselist; treated as relative=0",
+        "Error: Absolute address exceeds machine size; zero used",
+        "Error: Relative address exceeds module size; relative zero used",
+        "Error: Illegal immediate operand; treated as 999",
+        "Error: Illegal opcode; treated as 9999",
+        "Error: Illegal module operand ; treated as module=0",
+    };
+    if(errcode == 7){
+        printf("Error: %s is not defined; zero used", token.c_str());
+    }else{
+        printf("%s\n" ,errstr[errcode].c_str());
+    }
+}
+
+void __sepleeror(int errcode){
+    if(errcode ==1){
+        printf("Warning: Module %d: %s=%d valid=[0..%d] assume zero relative", modelCount, token.c_str(), 0,0);
+    }else if(errcode == 2){
+        printf("Warning: Module %d: %s redefinition ignored\n", modelCount, token.c_str());
+    }else if(errcode ==3){
+        printf("Warning: Module %d: uselist[%d]=%s was not used\n", modelCount, 0, token.c_str());
+    }else if(errcode == 4){
+        printf("Warning: Module %d: %s was defined but never used\n", modelCount, token.c_str());
+    }
 }
 
 string getToken(){
