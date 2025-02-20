@@ -44,6 +44,7 @@ int main(int argc, char* argv[])
     for(int i = 0; i < moduleBaseTable.size(); i++){
         cout << moduleBaseTable[i] << " ";
     }
+    
     cout <<"Memory Map" << endl;
     
    
@@ -58,31 +59,31 @@ void pass1(string fileName){
         cout << "File not found!" << fileName << endl;
         exit(0);
     }
-    //while(true){
-    int defcount = readInt(getToken());
-    if(defcount < 0){
-            exit(2);
-    }else if(defcount > 16){
-            __parseerror(4);
-    }
-    for(int i = 0; i < defcount; i++){
+    while(!inputFile.eof()){
+        int defcount = readInt(getToken());
+        if(defcount < 0){
+                exit(2);
+        }else if(defcount > 16){
+                __parseerror(4);
+        }
+        for(int i = 0; i < defcount; i++){
+                string symbol = readSymbol(getToken());
+                int val = readInt(getToken());
+                createSymbol(symbol, modelBase_address + val);
+        }
+        int usecount = readInt(getToken());
+        for(int i = 0; i < usecount; i++){
             string symbol = readSymbol(getToken());
-            int val = readInt(getToken());
-            createSymbol(symbol, modelBase_address + val);
+        }
+        int instrcount = readInt(getToken());
+        for(int i = 0; i < instrcount; i++){
+            string MARIE = readMARIE(getToken());
+            int operand = readInt(getToken());
+        }
+        modelCount++;
+        modelBase_address += instrcount;
+        moduleBaseTable.push_back(modelBase_address);
     }
-    int usecount = readInt(getToken());
-    for(int i = 0; i < usecount; i++){
-        string symbol = readSymbol(getToken());
-    }
-    int instrcount = readInt(getToken());
-    for(int i = 0; i < instrcount; i++){
-        string MARIE = readMARIE(getToken());
-        int operand = readInt(getToken());
-    }
-    modelCount++;
-    modelBase_address += instrcount;
-    moduleBaseTable.push_back(modelBase_address);
-    //}
    inputFile.close();
 }
 
@@ -138,7 +139,7 @@ void __parseerror(int errcode){
         "TO_MANY_USE_IN_MODULE", // > 16
         "TO_MANY_INSTR", // total num_instr exceeds memory size (512)
     };
-    printf("Parse Error: token<%s> at line %d offset %d: %s\n", token.c_str(),lineNumber, currentOffset, errstr[errcode].c_str());
+    printf("Parse Error: token<%s> at line %d offset %d: %s\n", token.c_str(),lineNumber, currentOffset+1, errstr[errcode].c_str());
     exit(0);
 }
 
@@ -150,11 +151,17 @@ string getToken(){
             currentOffset = pos;
             tokenStart = pos + token.length();
         }
-        printf("token=<%s> position=%d:%d\n", token.c_str(), lineNumber, currentOffset);
+        printf("token=<%s> position=%d:%d\n", token.c_str(), lineNumber, currentOffset+1);
         return token;
     } 
     // If current line is exhausted, proceed to the next line.
     while(getline(inputFile, line)){
+        if(line.find_first_not_of(" \t\r\n") == string::npos){
+            token = "";
+            lineNumber++;
+            currentOffset = 0;
+            continue;
+        }
         lineNumber++;
         tokenStart = 0;  // Reset offset tracker for the new line.
         lineStream.clear();
@@ -165,10 +172,10 @@ string getToken(){
                 currentOffset = pos;
                 tokenStart = pos + token.length();
             }
-            printf("token=<%s> position=%d:%d\n", token.c_str(), lineNumber, currentOffset);
+            printf("token=<%s> position=%d:%d\n", token.c_str(), lineNumber, currentOffset+1);
             return token;
         }
     }
-    printf("EOF position=%d:%d\n", lineNumber, currentOffset);
+    printf("EOF position=%d:%d\n", lineNumber, currentOffset+1);
     return "";
 }
