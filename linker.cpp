@@ -44,7 +44,7 @@ int main(int argc, char* argv[])
     for(int i = 0; i < moduleBaseTable.size(); i++){
         cout << moduleBaseTable[i] << " ";
     }
-    
+    cout << endl;
     cout <<"Memory Map" << endl;
     
    
@@ -59,15 +59,13 @@ void pass1(string fileName){
         cout << "File not found!" << fileName << endl;
         exit(0);
     }
-    while(!inputFile.eof()){
+    while(true){
         string startToken = getToken();
         if(startToken == ""){
             break;
         }
         int defcount = readInt(startToken);
-        if(defcount < 0){
-                exit(2);
-        }else if(defcount > 16){
+        if(defcount > 16){
                 __parseerror(4);
         }
         for(int i = 0; i < defcount; i++){
@@ -101,9 +99,9 @@ string readMARIE(string token){
     if(token.size() != 1){
         __parseerror(2);
     }
-    // if(token != "A" || token != "E" || token != "I" || token != "R" || token != "M"){
-    //     __parseerror(2);
-    // }
+    if(token != "A" && token != "E" && token != "I" && token != "R" && token != "M"){
+        __parseerror(2);
+    }
     return MARIE;
 }
 
@@ -160,7 +158,7 @@ string getToken(){
     } 
     // If current line is exhausted, proceed to the next line.
     while(getline(inputFile, line)){
-        if(line.find_first_not_of(" \t\r\n") == string::npos){
+        if(line.find_first_not_of(" \t\r\n") == string::npos){    // Skip empty lines 
             token = " ";
             lineNumber++;
             currentOffset = 0;
