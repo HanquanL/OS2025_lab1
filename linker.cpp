@@ -93,6 +93,7 @@ void passTwo(string fileName){
             string MARIE = readMARIE(getToken());
             int operand = readInt(getToken());
             insertMemoryMap(currentInstrcountIndex, operand);
+            totalInstructions++;
         }
         modelCount++;
     }
@@ -211,7 +212,7 @@ string getToken(){
             currentOffset = pos;
             tokenStart = pos + token.length();
         }
-        printf("token=<%s> position=%d:%d\n", token.c_str(), lineNumber, currentOffset+1);
+        //printf("token=<%s> position=%d:%d\n", token.c_str(), lineNumber, currentOffset+1);
         return token;
     } 
     // If current line is exhausted, proceed to the next line.
@@ -232,10 +233,10 @@ string getToken(){
                 currentOffset = pos;
                 tokenStart = pos + token.length();
             }
-            printf("token=<%s> position=%d:%d\n", token.c_str(), lineNumber, currentOffset+1);
+            //printf("token=<%s> position=%d:%d\n", token.c_str(), lineNumber, currentOffset+1);
             return token;
         }
     }
-    printf("EOF position=%d:%d\n", lineNumber, currentOffset+1);
+    //printf("EOF position=%d:%d\n", lineNumber, currentOffset+1);
     return "";
 }
