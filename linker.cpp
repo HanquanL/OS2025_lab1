@@ -14,6 +14,7 @@ string fileName,line,token;
 ifstream inputFile;
 istringstream lineStream;
 size_t tokenStart = 0;
+/*------data between P1 and P2 ------ */
 map<string, int> symbolTable;
 map<int, int> moduleBaseTable;
 map<string, int> memoryMap;
@@ -86,13 +87,9 @@ void passTwo(string fileName){
         }
         int instrcount = readInt(getToken());
         for(int i = 0; i < instrcount; i++){
-            string currentInstrcountIndex;
-            stringstream instrcountIndex;
-            instrcountIndex << setw(3) << setfill('0') << totalInstructions;
-            instrcountIndex >> currentInstrcountIndex;
             string MARIE = readMARIE(getToken());
             int operand = readInt(getToken());
-            insertMemoryMap(currentInstrcountIndex, operand);
+            insertMemoryMap(to_string(i), operand);
         }
         modelCount++;
     }
@@ -211,7 +208,7 @@ string getToken(){
             currentOffset = pos;
             tokenStart = pos + token.length();
         }
-        printf("token=<%s> position=%d:%d\n", token.c_str(), lineNumber, currentOffset+1);
+        //printf("token=<%s> position=%d:%d\n", token.c_str(), lineNumber, currentOffset+1);
         return token;
     } 
     // If current line is exhausted, proceed to the next line.
@@ -232,10 +229,10 @@ string getToken(){
                 currentOffset = pos;
                 tokenStart = pos + token.length();
             }
-            printf("token=<%s> position=%d:%d\n", token.c_str(), lineNumber, currentOffset+1);
+            //printf("token=<%s> position=%d:%d\n", token.c_str(), lineNumber, currentOffset+1);
             return token;
         }
     }
-    printf("EOF position=%d:%d\n", lineNumber, currentOffset+1);
+    //printf("EOF position=%d:%d\n", lineNumber, currentOffset+1);
     return "";
 }
