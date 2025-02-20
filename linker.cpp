@@ -60,7 +60,11 @@ void pass1(string fileName){
         exit(0);
     }
     while(!inputFile.eof()){
-        int defcount = readInt(getToken());
+        string startToken = getToken();
+        if(startToken == ""){
+            break;
+        }
+        int defcount = readInt(startToken);
         if(defcount < 0){
                 exit(2);
         }else if(defcount > 16){
@@ -157,7 +161,7 @@ string getToken(){
     // If current line is exhausted, proceed to the next line.
     while(getline(inputFile, line)){
         if(line.find_first_not_of(" \t\r\n") == string::npos){
-            token = "";
+            token = " ";
             lineNumber++;
             currentOffset = 0;
             continue;
