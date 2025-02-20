@@ -2,6 +2,7 @@
 #include<string>
 #include<fstream>
 #include<sstream>
+#include<vector>
 
 using namespace std;
 
@@ -11,6 +12,9 @@ string fileName,line,token;
 ifstream inputFile;
 istringstream lineStream;
 size_t tokenStart = 0;
+vector<string> symbolTable;
+vector<int> moduleBaseTable;
+
 
 /*------  function declaration  ------*/
 void __parseerror(int errcode);
@@ -19,6 +23,7 @@ int readInt(string token);
 string readSymbol(string token);
 string readMARIE(string token);
 void pass1(string fileName);
+void createSymbol(string symbol, int val);
 
 /*------  main function  ------*/
 int main(int argc, char* argv[])
@@ -29,41 +34,61 @@ int main(int argc, char* argv[])
     }else{
         fileName = argv[1];
     }
-   //getToken(fileName);    // only uncomment this line for testing purpose
+    pass1(fileName); 
     cout <<"Symbol Table" << endl;
+    for(int i = 0; i < symbolTable.size(); i++){
+        cout << symbolTable[i] << "=" << symbolTable[i+1] << endl;
+        i++;
+    }
+    cout <<"Module Base Table" << endl;
+    for(int i = 0; i < moduleBaseTable.size(); i++){
+        cout << moduleBaseTable[i] << " ";
+    }
     cout <<"Memory Map" << endl;
-    pass1(fileName);
+    
    
     return 0;
 }
 
 /*------  function definition  ------*/
 void pass1(string fileName){
-    int modelCount;
+    int modelCount = 0, modelBase_address = 0;
     inputFile.open(fileName);
     if(!inputFile.is_open()){
         cout << "File not found!" << fileName << endl;
         exit(0);
     }
-    if(getline(inputFile, line)){
-        lineStream.clear();
-        lineStream.str(line);
-    }
-    while(true){
-        int defcount = readInt(getToken());
-        if(defcount < 0){
+    //while(true){
+    int defcount = readInt(getToken());
+    if(defcount < 0){
             exit(2);
-        }else if(defcount > 16){
+    }else if(defcount > 16){
             __parseerror(4);
-        }
-        for(int i = 0; i < defcount; i++){
+    }
+    for(int i = 0; i < defcount; i++){
             string symbol = readSymbol(getToken());
             int val = readInt(getToken());
-            createSymbol(symbol, val);
-        }
-
+            createSymbol(symbol, modelBase_address + val);
     }
-   
+    int usecount = readInt(getToken());
+    for(int i = 0; i < usecount; i++){
+        string symbol = readSymbol(getToken());
+    }
+    int instrcount = readInt(getToken());
+    for(int i = 0; i < instrcount; i++){
+        string MARIE = readMARIE(getToken());
+        int operand = readInt(getToken());
+    }
+    modelCount++;
+    modelBase_address += instrcount;
+    moduleBaseTable.push_back(modelBase_address);
+    //}
+   inputFile.close();
+}
+
+void createSymbol(string symbol, int val){
+    symbolTable.push_back(symbol);
+    symbolTable.push_back(to_string(val));
 }
 
 string readMARIE(string token){
@@ -71,9 +96,9 @@ string readMARIE(string token){
     if(token.size() != 1){
         __parseerror(2);
     }
-    if(token[0] != 'A' || token[0] != 'E' || token[0] != 'I' || token[0] != 'R' || token[0] != 'M'){
-        __parseerror(2);
-    }
+    // if(token != "A" || token != "E" || token != "I" || token != "R" || token != "M"){
+    //     __parseerror(2);
+    // }
     return MARIE;
 }
 
@@ -113,7 +138,7 @@ void __parseerror(int errcode){
         "TO_MANY_USE_IN_MODULE", // > 16
         "TO_MANY_INSTR", // total num_instr exceeds memory size (512)
     };
-    printf("Parse Error line %d offset %d: %s\n", lineNumber+1, currentOffset+1, errstr[errcode].c_str());
+    printf("Parse Error: token<%s> at line %d offset %d: %s\n", token.c_str(),lineNumber, currentOffset, errstr[errcode].c_str());
     exit(0);
 }
 
@@ -144,8 +169,6 @@ string getToken(){
             return token;
         }
     }
-    
     printf("EOF position=%d:%d\n", lineNumber, currentOffset);
-    inputFile.close();
     return "";
 }
