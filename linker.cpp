@@ -126,7 +126,7 @@ void passTwo(string fileName){
                     //insertMemoryMap(currentInstrcountIndex, err);
                     memoryMap.push_back(currentInstrcountIndex + ": " + err);
                 }else{
-                    // operand = operand + moduleBaseTable[modelCount];
+                    operand = operand + moduleBaseTable[modelCount];
                     // insertMemoryMap(currentInstrcountIndex, to_string(operand));
                     memoryMap.push_back(currentInstrcountIndex + ": " + to_string(operand));
                 }
@@ -136,17 +136,18 @@ void passTwo(string fileName){
                 // string referenceSymbol = memoryMapUseList[useIndex];
                 // int referenceSymbolValue = findValueFromSymbolTable(referenceSymbol);
                 // operand = useBaseAddress + referenceSymbolValue;
+                // ifSymbolUsed[useIndex] = true; // mark as used
                 // if(symbolTable.find(referenceSymbol) == symbolTable.end()){
                 //     string err =to_string(operand)+ " Error: "+ referenceSymbol +" is not defined; zero used";
-                //     insertMemoryMap(currentInstrcountIndex, err);
+                //     memoryMap.push_back(currentInstrcountIndex + ": " + err);
                 // }else if(useIndex >= memoryMapUseList.size()){
                 //     string err =to_string(operand/1000*1000)+ " Error: External operand exceeds length of uselist; treated as relative=0";
-                //     insertMemoryMap(currentInstrcountIndex, err);
+                //     memoryMap.push_back(currentInstrcountIndex + ": " + err);
 
                 // }else{
-                //     insertMemoryMap(currentInstrcountIndex, to_string(operand));
+                //     memoryMap.push_back(currentInstrcountIndex + ": " + to_string(operand));
                 // }
-                // memoryMapUseList = {};  // every module has defferent useList, so we need to clear it.
+              
                 int useIndex = operand % 1000;
                 int useBaseAddress = operand - useIndex;
                 if(useIndex >= memoryMapUseList.size()){
