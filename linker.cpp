@@ -19,6 +19,7 @@ size_t tokenStart = 0;
 map<string, int> symbolTable;
 map<int, int> moduleBaseTable;
 map<string, int> memoryMap;
+vector<string> sepLineError;
 
 /*------  function declaration  ------*/
 string getToken();
@@ -34,7 +35,6 @@ int findValueFromSymbolTable(string symbol);
 /*------ Error INFO ------*/
 void __parseerror(int errcode);
 void __eolerror(int errcode);
-void __seplerror(int errcode);
 
 /*------  main function  ------*/
 int main(int argc, char* argv[])
@@ -61,14 +61,21 @@ int main(int argc, char* argv[])
     for(auto i : memoryMap){
         cout << i.first << ": " << i.second << endl;
     }
-   
+    cout << endl;
+    // print errors
+    for(auto i : sepLineError){
+        cout << i;
+    }
+    cout << endl;
     return 0;
 }
 
 /*------  function definition  ------*/
 void passTwo(string fileName){
     int modelCount = 0, modelBase_address = 0, totalInstructions = 0;
-    vector<string> useList;
+    vector<string> memoryMapUseList;
+    map<string, int> tempDefList;
+    map<string, int> tempUseList;
     inputFile.open(fileName);
     if(!inputFile.is_open()){
         cout << "File not found!" << fileName << endl;
@@ -83,11 +90,19 @@ void passTwo(string fileName){
         for(int i = 0; i < defcount; i++){
                 string symbol = readSymbol(getToken());
                 int val = readInt(getToken());
+                if(tempDefList.find(symbol) == tempDefList.end()){
+                    tempDefList[symbol] = modelCount;
+                }
         }
         int usecount = readInt(getToken());
         for(int i = 0; i < usecount; i++){
             string symbol = readSymbol(getToken());
-            useList.push_back(symbol);
+            memoryMapUseList.push_back(symbol);
+            if(tempUseList.find(symbol) == tempUseList.end()){
+                tempUseList[symbol] = 0;
+            }else{
+                tempUseList[symbol]++;
+            }
         }
         int instrcount = readInt(getToken());
         for(int i = 0; i < instrcount; i++){
@@ -103,11 +118,11 @@ void passTwo(string fileName){
             }else if(MARIE == "E"){
                 int useIndex = operand % 1000;
                 int useBaseAddress = operand - useIndex;
-                string referenceSymbol = useList[useIndex];
+                string referenceSymbol = memoryMapUseList[useIndex];
                 int referenceSymbolValue = findValueFromSymbolTable(referenceSymbol);
                 operand = useBaseAddress + referenceSymbolValue;
                 insertMemoryMap(currentInstrcountIndex, operand);
-                useList = {};
+                memoryMapUseList = {};  // every module has defferent useList, so we need to clear it. for generating memory map
             }else{
                 insertMemoryMap(currentInstrcountIndex, operand);
             }
@@ -115,6 +130,14 @@ void passTwo(string fileName){
             totalInstructions++;
         }
         modelCount++;
+    }
+    /*------ error: defined but never use------*/
+    for (const auto &entry : tempUseList) {
+        tempDefList.erase(entry.first);
+    }
+    for(auto i : tempDefList){
+        string warning = "Warning: Module " + to_string(i.second)+"："+ i.first + " was defined but never used\n";
+        sepLineError.push_back(warning);
     }
     inputFile.close();
 }
@@ -140,9 +163,12 @@ void passOne(string fileName){
         for(int i = 0; i < defcount; i++){
                 string symbol = readSymbol(getToken());
                 int val = readInt(getToken());
-                createSymbol(symbol, modelBase_address + val);
+                createSymbol(symbol, modelBase_address + val);    // insert to symbol table
         }
         int usecount = readInt(getToken());
+        if(usecount > 16){
+            __parseerror(5);
+        }
         for(int i = 0; i < usecount; i++){
             string symbol = readSymbol(getToken());
         }
@@ -176,10 +202,13 @@ void createSymbol(string symbol, int val){
 string readMARIE(string token){
     string MARIE = token;
     if(token.size() != 1){
-        __parseerror(2);
+        __parseerror(7);
     }
     if(token != "A" && token != "E" && token != "I" && token != "R" && token != "M"){
-        __parseerror(2);
+        __parseerror(7);
+    }
+    if(token == " " || token =="\n"){
+        __parseerror(7);
     }
     return MARIE;
 }
@@ -188,7 +217,7 @@ string readSymbol(string token){
     string symbol = token;
     if(token.size() > 16){
         __parseerror(3);
-    }else if(token.size() == 0){
+    }else if(token == " "){
         __parseerror(1);
     }
     for(int i = 0; i < token.size(); i++){
@@ -216,9 +245,10 @@ void __parseerror(int errcode){
         "SYM_EXPECTED", // Symbol Expected
         "ADDR_EXPECTED", // Addressing Expected which is M/A/E/I/R
         "SYM_TOLONG", // Symbol Name is to long
-        "TO_MANY_DEF_IN_MODULE", // > 16
-        "TO_MANY_USE_IN_MODULE", // > 16
-        "TO_MANY_INSTR", // total num_instr exceeds memory size (512)
+        "TOO_MANY_DEF_IN_MODULE", // > 16
+        "TOO_MANY_USE_IN_MODULE", // > 16
+        "TOO_MANY_INSTR", // total num_instr exceeds memory size (512)
+        "MARIE_EXPECTED", // MARIE Expected
     };
     printf("Parse Error line %d offset %d: %s\n", lineNumber, currentOffset+1, errstr[errcode].c_str());
     exit(0);
@@ -241,20 +271,7 @@ void __eolerror(int errcode){
     }
 }
 
-void __sepleeror(int errcode){
-    if(errcode ==1){
-        printf("Warning: Module %d: %s=%d valid=[0..%d] assume zero relative", modelCount, token.c_str(), 0,0);
-    }else if(errcode == 2){
-        printf("Warning: Module %d: %s redefinition ignored\n", modelCount, token.c_str());
-    }else if(errcode ==3){
-        printf("Warning: Module %d: uselist[%d]=%s was not used\n", modelCount, 0, token.c_str());
-    }else if(errcode == 4){
-        printf("Warning: Module %d: %s was defined but never used\n", modelCount, token.c_str());
-    }
-}
-
 string getToken(){
-    
     if(lineStream >> token) {
         size_t pos = line.find(token, tokenStart);
         if(pos != string::npos){
