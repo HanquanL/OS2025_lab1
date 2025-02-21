@@ -119,6 +119,10 @@ void passTwo(string fileName){
             instrcountIndex >> currentInstrcountIndex;
             string MARIE = readMARIE(getToken());
             int operand = readInt(getToken());
+            if(operand / 1000 >= 10){
+                string err = "9999 Error: Illegal opcode; treated as 9999";
+                memoryMap.push_back(currentInstrcountIndex + ": " + err);
+            }else{
             if(MARIE == "R"){
                 if(operand % 1000 > instrcount){
                     operand = operand/1000*1000 + moduleBaseTable[modelCount];
@@ -180,13 +184,33 @@ void passTwo(string fileName){
                     memoryMap.push_back(currentInstrcountIndex + ": " + to_string(operand));
                 }
             }else if(MARIE =="M"){
-                stringstream formatedOperand;
-                formatedOperand << setw(4) << setfill('0') << to_string(moduleBaseTable[operand]);
-                memoryMap.push_back(currentInstrcountIndex + ": " + formatedOperand.str());
+                if(operand % 1000 > moduleBaseTable.size() - 1 ){
+                    string err = " Error: Illegal module operand ; treated as module=0";
+                    string value = to_string(operand/1000*1000);
+                    //insertMemoryMap(currentInstrcountIndex, value + err);
+                    memoryMap.push_back(currentInstrcountIndex + ": " + value + err);
+                }else{
+                    stringstream formatedOperand;
+                    formatedOperand << setw(4) << setfill('0') << to_string(operand / 1000 * 1000 + moduleBaseTable[operand % 1000]);
+                    memoryMap.push_back(currentInstrcountIndex + ": " + formatedOperand.str());
+                }
+            }else if(MARIE == "I"){
+                if(operand % 1000 >= 900){
+                    string err = " Error: Illegal immediate operand; treated as 999";
+                    string value = to_string(operand / 1000 * 1000 + 999);
+                    memoryMap.push_back(currentInstrcountIndex + ": " + value + err);
+                }else if(operand < 1000){
+                    stringstream formatedOperand;
+                    formatedOperand << setw(4) << setfill('0') << to_string(operand);
+                    memoryMap.push_back(currentInstrcountIndex + ": " + formatedOperand.str());
+                }else{
+                    memoryMap.push_back(currentInstrcountIndex + ": " + to_string(operand));
+                }
             }else{
                 //insertMemoryMap(currentInstrcountIndex, to_string(operand));
                 memoryMap.push_back(currentInstrcountIndex + ": " + to_string(operand));
             }
+        }
             //insertMemoryMap(currentInstrcountIndex, operand);
             totalInstructions++;
         }
