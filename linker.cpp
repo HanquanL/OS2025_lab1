@@ -118,8 +118,14 @@ void passTwo(string fileName){
             string MARIE = readMARIE(getToken());
             int operand = readInt(getToken());
             if(MARIE == "R"){
+                if(operand % 1000 > instrcount){
+                    operand = operand/1000*1000 + moduleBaseTable[modelCount];
+                    string err =to_string(operand)+ " Error: Relative address exceeds module size; relative zero used";
+                    insertMemoryMap(currentInstrcountIndex, err);
+                }else{
                 operand = operand + moduleBaseTable[modelCount];
                 insertMemoryMap(currentInstrcountIndex, to_string(operand));
+                }
             }else if(MARIE == "E"){
                 int useIndex = operand % 1000;
                 int useBaseAddress = operand - useIndex;
@@ -132,7 +138,7 @@ void passTwo(string fileName){
                 }else{
                 insertMemoryMap(currentInstrcountIndex, to_string(operand));
                 }
-                memoryMapUseList = {};  // every module has defferent useList, so we need to clear it. for generating memory map
+                memoryMapUseList = {};  // every module has defferent useList, so we need to clear it.
             }else if(MARIE == "A"){
                 int realOperand = operand%1000;
                 if(realOperand >= 512){
