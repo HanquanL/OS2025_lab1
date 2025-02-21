@@ -126,7 +126,12 @@ void passTwo(string fileName){
                 string referenceSymbol = memoryMapUseList[useIndex];
                 int referenceSymbolValue = findValueFromSymbolTable(referenceSymbol);
                 operand = useBaseAddress + referenceSymbolValue;
+                if(symbolTable.find(referenceSymbol) == symbolTable.end()){
+                    string err =to_string(operand)+ " Error: "+ referenceSymbol +" is not defined; zero used";
+                    insertMemoryMap(currentInstrcountIndex, err);
+                }else{
                 insertMemoryMap(currentInstrcountIndex, to_string(operand));
+                }
                 memoryMapUseList = {};  // every module has defferent useList, so we need to clear it. for generating memory map
             }else if(MARIE == "A"){
                 int realOperand = operand%1000;
