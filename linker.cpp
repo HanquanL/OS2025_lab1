@@ -16,10 +16,11 @@ string fileName,line,token;
 ifstream inputFile;
 istringstream lineStream;
 size_t tokenStart = 0;
-map<string, int> symbolTable;
+map<string, string> symbolTable;
 map<int, int> moduleBaseTable;
-map<string, int> memoryMap;
+map<string, string> memoryMap;
 vector<string> sepLineError;
+vector<string> topError;
 
 /*------  function declaration  ------*/
 string getToken();
@@ -28,8 +29,8 @@ string readSymbol(string token);
 string readMARIE(string token);
 void passOne(string fileName);
 void passTwo(string fileName);
-void createSymbol(string symbol, int val);
-void insertMemoryMap(string index, int value);
+void createSymbol(string symbol, string val);
+void insertMemoryMap(string index, string value);
 int findValueFromSymbolTable(string symbol);
 
 /*------ Error INFO ------*/
@@ -47,6 +48,10 @@ int main(int argc, char* argv[])
     }
     passOne(fileName); 
     passTwo(fileName);
+    // print top errors
+    for(auto i : topError){
+        cout << i;
+    }
     cout <<"Symbol Table" << endl;
     for(auto i : symbolTable){
         cout << i.first << "=" << i.second << endl;
@@ -114,17 +119,26 @@ void passTwo(string fileName){
             int operand = readInt(getToken());
             if(MARIE == "R"){
                 operand = operand + moduleBaseTable[modelCount];
-                insertMemoryMap(currentInstrcountIndex, operand);
+                insertMemoryMap(currentInstrcountIndex, to_string(operand));
             }else if(MARIE == "E"){
                 int useIndex = operand % 1000;
                 int useBaseAddress = operand - useIndex;
                 string referenceSymbol = memoryMapUseList[useIndex];
                 int referenceSymbolValue = findValueFromSymbolTable(referenceSymbol);
                 operand = useBaseAddress + referenceSymbolValue;
-                insertMemoryMap(currentInstrcountIndex, operand);
+                insertMemoryMap(currentInstrcountIndex, to_string(operand));
                 memoryMapUseList = {};  // every module has defferent useList, so we need to clear it. for generating memory map
+            }else if(MARIE == "A"){
+                int realOperand = operand%1000;
+                if(realOperand >= 512){
+                    realOperand = (operand/1000)*1000;
+                    string err =to_string(realOperand)+ " Error: Absolute address exceeds machine size; zero used";
+                    insertMemoryMap(currentInstrcountIndex, err);
+                }else{
+                    insertMemoryMap(currentInstrcountIndex, to_string(operand));
+                }
             }else{
-                insertMemoryMap(currentInstrcountIndex, operand);
+                insertMemoryMap(currentInstrcountIndex, to_string(operand));
             }
             //insertMemoryMap(currentInstrcountIndex, operand);
             totalInstructions++;
@@ -136,7 +150,7 @@ void passTwo(string fileName){
         tempDefList.erase(entry.first);
     }
     for(auto i : tempDefList){
-        string warning = "Warning: Module " + to_string(i.second)+"："+ i.first + " was defined but never used\n";
+        string warning = "Warning: Module " + to_string(i.second)+": "+ i.first + " was defined but never used\n";
         sepLineError.push_back(warning);
     }
     inputFile.close();
@@ -162,8 +176,16 @@ void passOne(string fileName){
         }
         for(int i = 0; i < defcount; i++){
                 string symbol = readSymbol(getToken());
+                string symbolValue;
                 int val = readInt(getToken());
-                createSymbol(symbol, modelBase_address + val);    // insert to symbol table
+                if(symbolTable.find(symbol) != symbolTable.end()){
+                    string warning = "Warning: Module " + to_string(modelCount) + ": " + symbol + " redefinition ignored\n";
+                    topError.push_back(warning);
+                    symbolValue = to_string(findValueFromSymbolTable(symbol)) + " Error: This variable is multiple times defined; first value used";
+                }else{
+                    symbolValue = to_string(modelBase_address + val);
+                }
+                createSymbol(symbol, symbolValue);    // insert to symbol table
         }
         int usecount = readInt(getToken());
         if(usecount > 16){
@@ -187,16 +209,16 @@ void passOne(string fileName){
    inputFile.close();
 }
 
-void insertMemoryMap(string index, int value){
+void insertMemoryMap(string index, string value){
     if(memoryMap.find(index) == memoryMap.end()){
         memoryMap[index] = value;
     }
 }
 
-void createSymbol(string symbol, int val){
-    if(symbolTable.find(symbol) == symbolTable.end()){
+void createSymbol(string symbol, string val){
+    //if(symbolTable.find(symbol) == symbolTable.end()){
         symbolTable[symbol] = val;
-    }
+    //}
 }
 
 string readMARIE(string token){
@@ -310,7 +332,12 @@ string getToken(){
 int findValueFromSymbolTable(string symbol){
     auto it = symbolTable.find(symbol);
     if(it != symbolTable.end()){
-        return it->second;
+        string valueString = it->second;
+        // Extract the contiguous digits from the start of valueString.
+        size_t pos = valueString.find_first_not_of("0123456789");
+        string numberStr = valueString.substr(0, pos);
+        int value = stoi(numberStr);
+        return value;
     }
     return 0;
 }
