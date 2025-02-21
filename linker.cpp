@@ -129,6 +129,10 @@ void passTwo(string fileName){
                     string err =to_string(operand)+ " Error: Relative address exceeds module size; relative zero used";
                     //insertMemoryMap(currentInstrcountIndex, err);
                     memoryMap.push_back(currentInstrcountIndex + ": " + err);
+                }else if(operand < 1000){
+                    stringstream formatedOperand;
+                    formatedOperand << setw(4) << setfill('0') << to_string(operand);
+                    memoryMap.push_back(currentInstrcountIndex + ": " + formatedOperand.str());
                 }else{
                     operand = operand + moduleBaseTable[modelCount];
                     // insertMemoryMap(currentInstrcountIndex, to_string(operand));
