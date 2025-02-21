@@ -179,6 +179,10 @@ void passTwo(string fileName){
                     //insertMemoryMap(currentInstrcountIndex, to_string(operand));
                     memoryMap.push_back(currentInstrcountIndex + ": " + to_string(operand));
                 }
+            }else if(MARIE =="M"){
+                stringstream formatedOperand;
+                formatedOperand << setw(4) << setfill('0') << to_string(moduleBaseTable[operand]);
+                memoryMap.push_back(currentInstrcountIndex + ": " + formatedOperand.str());
             }else{
                 //insertMemoryMap(currentInstrcountIndex, to_string(operand));
                 memoryMap.push_back(currentInstrcountIndex + ": " + to_string(operand));
@@ -199,6 +203,7 @@ void passTwo(string fileName){
         memoryMapUseList = {};  // every module has defferent useList, so we need to clear it.
         modelCount++;
     }
+
     /*------ error: defined but never use------*/
     for (const auto &entry : tempUseList) {
         tempDefList.erase(entry.first);
