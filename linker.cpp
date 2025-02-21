@@ -222,6 +222,8 @@ void passOne(string fileName){
             break;
         }
         moduleBaseTable[modelCount] = modelBase_address;
+        int moduleSise = 0;
+        map<string, int> tempDefList;
         int defcount = readInt(startToken);
         if(defcount < 0){
                 exit(2);
@@ -232,6 +234,9 @@ void passOne(string fileName){
                 string symbol = readSymbol(getToken());
                 string symbolValue;
                 int val = readInt(getToken());
+                if(tempDefList.find(symbol) == tempDefList.end()){
+                    tempDefList[symbol] = val;
+                }
                 if(symbolTable.find(symbol) != symbolTable.end()){
                     string warning = "Warning: Module " + to_string(modelCount) + ": " + symbol + " redefinition ignored\n";
                     topError.push_back(warning);
@@ -249,6 +254,7 @@ void passOne(string fileName){
             string symbol = readSymbol(getToken());
         }
         int instrcount = readInt(getToken());
+        moduleSise += instrcount;
         for(int i = 0; i < instrcount; i++){
             totalInstructions += instrcount;
             if(totalInstructions > 512){
@@ -256,6 +262,14 @@ void passOne(string fileName){
             }
             string MARIE = readMARIE(getToken());
             int operand = readInt(getToken());
+        }
+        for(auto i : tempDefList){
+            int value = i.second;
+            if(value > moduleSise){
+                string warning = "Warning: Module " + to_string(modelCount) + ": "+ i.first + "="+ to_string(i.second) + " valid=[0.." + to_string(instrcount -1) + "] assume zero relative\n";
+                topError.push_back(warning);
+                symbolTable[i.first] = to_string(modelBase_address);
+            }
         }
         modelCount++;
         modelBase_address += instrcount;
