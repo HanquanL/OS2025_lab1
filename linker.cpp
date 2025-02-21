@@ -18,7 +18,7 @@ istringstream lineStream;
 size_t tokenStart = 0;
 map<string, string> symbolTable;
 map<int, int> moduleBaseTable;
-map<string, string> memoryMap;
+vector<string> memoryMap;
 vector<string> sepLineError;
 vector<string> topError;
 
@@ -64,7 +64,7 @@ int main(int argc, char* argv[])
     // cout << endl;
     cout <<"Memory Map" << endl;
     for(auto i : memoryMap){
-        cout << i.first << ": " << i.second << endl;
+        cout << i << endl;
     }
     cout << endl;
     // print errors
@@ -81,6 +81,7 @@ void passTwo(string fileName){
     vector<string> memoryMapUseList;
     map<string, int> tempDefList;
     map<string, int> tempUseList;
+    inputFile.clear();
     inputFile.open(fileName);
     if(!inputFile.is_open()){
         cout << "File not found!" << fileName << endl;
@@ -109,6 +110,7 @@ void passTwo(string fileName){
                 tempUseList[symbol]++;
             }
         }
+        vector<bool> ifSymbolUsed(memoryMapUseList.size(), false);
         int instrcount = readInt(getToken());
         for(int i = 0; i < instrcount; i++){
             string currentInstrcountIndex;
@@ -121,39 +123,79 @@ void passTwo(string fileName){
                 if(operand % 1000 > instrcount){
                     operand = operand/1000*1000 + moduleBaseTable[modelCount];
                     string err =to_string(operand)+ " Error: Relative address exceeds module size; relative zero used";
-                    insertMemoryMap(currentInstrcountIndex, err);
+                    //insertMemoryMap(currentInstrcountIndex, err);
+                    memoryMap.push_back(currentInstrcountIndex + ": " + err);
                 }else{
-                operand = operand + moduleBaseTable[modelCount];
-                insertMemoryMap(currentInstrcountIndex, to_string(operand));
+                    // operand = operand + moduleBaseTable[modelCount];
+                    // insertMemoryMap(currentInstrcountIndex, to_string(operand));
+                    memoryMap.push_back(currentInstrcountIndex + ": " + to_string(operand));
                 }
             }else if(MARIE == "E"){
+                // int useIndex = operand % 1000;
+                // int useBaseAddress = operand - useIndex;
+                // string referenceSymbol = memoryMapUseList[useIndex];
+                // int referenceSymbolValue = findValueFromSymbolTable(referenceSymbol);
+                // operand = useBaseAddress + referenceSymbolValue;
+                // if(symbolTable.find(referenceSymbol) == symbolTable.end()){
+                //     string err =to_string(operand)+ " Error: "+ referenceSymbol +" is not defined; zero used";
+                //     insertMemoryMap(currentInstrcountIndex, err);
+                // }else if(useIndex >= memoryMapUseList.size()){
+                //     string err =to_string(operand/1000*1000)+ " Error: External operand exceeds length of uselist; treated as relative=0";
+                //     insertMemoryMap(currentInstrcountIndex, err);
+
+                // }else{
+                //     insertMemoryMap(currentInstrcountIndex, to_string(operand));
+                // }
+                // memoryMapUseList = {};  // every module has defferent useList, so we need to clear it.
                 int useIndex = operand % 1000;
                 int useBaseAddress = operand - useIndex;
-                string referenceSymbol = memoryMapUseList[useIndex];
-                int referenceSymbolValue = findValueFromSymbolTable(referenceSymbol);
-                operand = useBaseAddress + referenceSymbolValue;
-                if(symbolTable.find(referenceSymbol) == symbolTable.end()){
-                    string err =to_string(operand)+ " Error: "+ referenceSymbol +" is not defined; zero used";
-                    insertMemoryMap(currentInstrcountIndex, err);
-                }else{
-                insertMemoryMap(currentInstrcountIndex, to_string(operand));
+                if(useIndex >= memoryMapUseList.size()){
+                    string err = to_string(operand/1000*1000)+ " Error: External operand exceeds length of uselist; treated as relative=0";
+                    //insertMemoryMap(currentInstrcountIndex, err);
+                    memoryMap.push_back(currentInstrcountIndex + ": " + err);
+                } else {
+                    ifSymbolUsed[useIndex] = true; // mark as used
+                    string referenceSymbol = memoryMapUseList[useIndex];
+                    int referenceSymbolValue = findValueFromSymbolTable(referenceSymbol);
+                    operand = useBaseAddress + referenceSymbolValue;
+                    if(symbolTable.find(referenceSymbol) == symbolTable.end()){
+                        string err = to_string(operand)+ " Error: " + referenceSymbol + " is not defined; zero used";
+                        //insertMemoryMap(currentInstrcountIndex, err);
+                        memoryMap.push_back(currentInstrcountIndex + ": " + err);
+                    } else {
+                        //insertMemoryMap(currentInstrcountIndex, to_string(operand));
+                        memoryMap.push_back(currentInstrcountIndex + ": " + to_string(operand));
+                    }
                 }
-                memoryMapUseList = {};  // every module has defferent useList, so we need to clear it.
             }else if(MARIE == "A"){
                 int realOperand = operand%1000;
                 if(realOperand >= 512){
                     realOperand = (operand/1000)*1000;
                     string err =to_string(realOperand)+ " Error: Absolute address exceeds machine size; zero used";
-                    insertMemoryMap(currentInstrcountIndex, err);
+                    //insertMemoryMap(currentInstrcountIndex, err);
+                    memoryMap.push_back(currentInstrcountIndex + ": " + err);
                 }else{
-                    insertMemoryMap(currentInstrcountIndex, to_string(operand));
+                    //insertMemoryMap(currentInstrcountIndex, to_string(operand));
+                    memoryMap.push_back(currentInstrcountIndex + ": " + to_string(operand));
                 }
             }else{
-                insertMemoryMap(currentInstrcountIndex, to_string(operand));
+                //insertMemoryMap(currentInstrcountIndex, to_string(operand));
+                memoryMap.push_back(currentInstrcountIndex + ": " + to_string(operand));
             }
             //insertMemoryMap(currentInstrcountIndex, operand);
             totalInstructions++;
         }
+
+        /*------ error: Unused uselist ------*/
+        for(int i = 0; i < ifSymbolUsed.size(); i++){
+            if(!ifSymbolUsed[i]){
+                string key = "notUsedWarning" + to_string(modelCount) + to_string(i) + memoryMapUseList[i];
+                string value = "Warning: Module " + to_string(modelCount) + ": uselist[" + to_string(i) + "]=" + memoryMapUseList[i]+ " was not used";
+                //insertMemoryMap(key, value);
+                memoryMap.push_back(value);
+            }
+        }
+        memoryMapUseList = {};  // every module has defferent useList, so we need to clear it.
         modelCount++;
     }
     /*------ error: defined but never use------*/
@@ -220,11 +262,11 @@ void passOne(string fileName){
    inputFile.close();
 }
 
-void insertMemoryMap(string index, string value){
-    if(memoryMap.find(index) == memoryMap.end()){
-        memoryMap[index] = value;
-    }
-}
+// void insertMemoryMap(string index, string value){
+//     if(memoryMap.find(index) == memoryMap.end()){
+//         memoryMap[index] = value;
+//     }
+// }
 
 void createSymbol(string symbol, string val){
     //if(symbolTable.find(symbol) == symbolTable.end()){
@@ -348,6 +390,7 @@ int findValueFromSymbolTable(string symbol){
         size_t pos = valueString.find_first_not_of("0123456789");
         string numberStr = valueString.substr(0, pos);
         int value = stoi(numberStr);
+     
         return value;
     }
     return 0;
