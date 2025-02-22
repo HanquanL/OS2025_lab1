@@ -36,7 +36,6 @@ int findValueFromSymbolTable(string symbol);
 
 /*------ Error INFO ------*/
 void __parseerror(int errcode);
-void __eolerror(int errcode);
 
 /*------  main function  ------*/
 int main(int argc, char* argv[])
@@ -294,7 +293,7 @@ void passOne(string fileName){
             if(totalInstructions > 512){
                 __parseerror(6);
             }
-            string MARIE = readMARIE(getToken());
+            string MARIE = readMARIE(getToken());     
             int operand = readInt(getToken());
         }
         for(auto i : tempDefList){
@@ -311,16 +310,8 @@ void passOne(string fileName){
    inputFile.close();
 }
 
-// void insertMemoryMap(string index, string value){
-//     if(memoryMap.find(index) == memoryMap.end()){
-//         memoryMap[index] = value;
-//     }
-// }
-
 void createSymbol(string symbol, string val){
-    //if(symbolTable.find(symbol) == symbolTable.end()){
         symbolTable[symbol] = val;
-    //}
 }
 
 string readMARIE(string token){
@@ -383,23 +374,6 @@ void __parseerror(int errcode){
         printf("Parse Error line %d offset %d: %s\n", lineNumber, currentOffset+1, errstr[errcode].c_str());
     }
     exit(0);
-}
-
-void __eolerror(int errcode){
-    string errstr[] = {
-        "Error: This variable is multiple times defined; first value used",
-        "Error: External operand exceeds length of uselist; treated as relative=0",
-        "Error: Absolute address exceeds machine size; zero used",
-        "Error: Relative address exceeds module size; relative zero used",
-        "Error: Illegal immediate operand; treated as 999",
-        "Error: Illegal opcode; treated as 9999",
-        "Error: Illegal module operand ; treated as module=0",
-    };
-    if(errcode == 7){
-        printf("Error: %s is not defined; zero used", token.c_str());
-    }else{
-        printf("%s\n" ,errstr[errcode].c_str());
-    }
 }
 
 string getToken(){
