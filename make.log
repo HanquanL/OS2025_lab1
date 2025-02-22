@@ -1,0 +1,3 @@
+crunchy1.cims.nyu.edu
+rm -f linker *~
+g++ -g linker.cpp -o linker 
