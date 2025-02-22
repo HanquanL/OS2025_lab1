@@ -10,6 +10,7 @@ using namespace std;
 
 /*------  global variable  ------*/
 int lineNumber = 0, currentOffset = 0;
+// int lineNumber = 1, currentOffset = 1;
 int modelCount = 0, modelBase_address = 0;
 int totalInstructions = 0;
 string fileName,line,token;
@@ -340,7 +341,7 @@ string readSymbol(string token){
     string symbol = token;
     if(token.size() > 16){
         __parseerror(3);
-    }else if(token == " "){
+    }else if(token == " " || token == "\n" || token == "" || token == "\t"){
         __parseerror(1);
     }
     for(int i = 0; i < token.size(); i++){
@@ -354,6 +355,9 @@ string readSymbol(string token){
 
 int readInt(string token){
     int count;
+    if(token == " " || token == "\n" || token == "" || token == "\t"){
+        __parseerror(0);
+    }
     try{
         count = stoi(token);
     }catch(exception e){
@@ -373,7 +377,11 @@ void __parseerror(int errcode){
         "TOO_MANY_INSTR", // total num_instr exceeds memory size (512)
         "MARIE_EXPECTED", // MARIE Expected
     };
-    printf("Parse Error line %d offset %d: %s\n", lineNumber, currentOffset+1, errstr[errcode].c_str());
+    if(inputFile.eof()){
+        printf("Parse Error line %d offset %d: %s\n", lineNumber, currentOffset+1+static_cast<int>(token.size()), errstr[errcode].c_str());
+    }else{
+        printf("Parse Error line %d offset %d: %s\n", lineNumber, currentOffset+1, errstr[errcode].c_str());
+    }
     exit(0);
 }
 
